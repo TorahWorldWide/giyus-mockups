@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>גיוס לדוכנים · אפל</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* OpenDesign: apple — pale gray #f5f5f7 canvas, white cards, near-black ink, one blue action color, purposeful radius tiers (8 / 12 / 18 / capsule), airy spacing */
+:root{--pale:#f5f5f7;--ink:#1d1d1f;--blue:#0071e3;--link:#0066cc;--g2:#6e6e73;--bd:#d2d2d7;--bd2:#86868b}
+*{box-sizing:border-box;margin:0}
+html,body{font-family:-apple-system,"SF Pro Text",Heebo,system-ui,sans-serif;color:var(--ink);background:var(--pale);-webkit-font-smoothing:antialiased}
+.wrap{padding:14px 16px 28px}
+.eyebrow{font:600 13px Heebo;color:var(--g2)}
+h1{font:700 34px/1.1 Heebo;letter-spacing:-.01em;margin:2px 0 14px}
+.seg{display:flex;background:#e3e3e8;border-radius:9px;padding:2px;margin-bottom:14px}
+.seg button{flex:1;border:0;background:none;border-radius:7px;font:500 14px Heebo;padding:7px;color:var(--ink)}
+.seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.card{background:#fff;border-radius:18px;overflow:hidden;margin-bottom:14px}
+.mapw{height:300px;position:relative}#map{position:absolute;inset:0;direction:ltr}
+.cap{padding:12px 16px;display:flex;align-items:center;gap:10px}
+.cap b{font:600 17px Heebo}.cap span{font:400 13px Heebo;color:var(--g2)}
+.cap .need{margin-inline-start:auto;font:600 13px Heebo;color:#fff;background:var(--ink);border-radius:980px;padding:4px 10px}
+.live{display:flex;align-items:center;gap:8px;font:400 13px Heebo;color:var(--g2);padding:0 4px 10px}
+.live i{width:7px;height:7px;border-radius:50%;background:#34c759}
+.focus{padding:16px}
+.fr{display:flex;gap:12px;align-items:center}
+.av{width:48px;height:48px;border-radius:50%;background:linear-gradient(#a1a1a6,#86868b);color:#fff;display:grid;place-items:center;font:600 16px Heebo;flex:none}
+.nm{font:600 17px Heebo}.meta{font:400 13px Heebo;color:var(--g2);margin-top:1px}
+.m{margin-inline-start:auto;text-align:end;font:600 22px Heebo}.m small{display:block;font:400 12px Heebo;color:var(--g2)}
+.call{display:block;width:100%;border:0;border-radius:980px;background:var(--blue);color:#fff;font:500 17px Heebo;padding:13px;margin-top:14px}
+.icons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.icons button{border:0;background:var(--pale);border-radius:12px;padding:10px 0 8px;font:400 12px Heebo;color:var(--link);display:flex;flex-direction:column;align-items:center;gap:4px}
+.icons svg{width:22px;height:22px}
+.sec{font:600 13px Heebo;color:var(--g2);margin:6px 16px 6px}
+.grp{background:#fff;border-radius:12px;overflow:hidden}
+.li{display:flex;align-items:center;gap:12px;padding:11px 16px;position:relative}
+.li+.li::before{content:"";position:absolute;top:0;inset-inline-start:72px;inset-inline-end:0;border-top:.5px solid var(--bd)}
+.li .av{width:40px;height:40px;font-size:14px}
+.li .m{font:500 17px Heebo}
+.chev{color:#c7c7cc;font:400 18px Heebo}
+.st-calling .meta{color:#34c759}.st-noans .meta{color:#ff9500}.st-placed{opacity:.45}
+.listonly{display:none}.view-list .listonly{display:block}.view-list .maponly{display:none}
+.stb{width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font:600 14px Heebo;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25);transform:translate(-50%,-50%)}
+.stb.full{background:#fff;color:var(--ink);border-color:var(--ink)}
+.pd{width:16px;height:16px;border-radius:50%;background:var(--blue);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transform:translate(-50%,-50%)}
+.pd.sel{width:24px;height:24px;box-shadow:0 0 0 6px rgba(0,113,227,.2),0 1px 4px rgba(0,0,0,.3)}
+.pd.calling{background:#34c759}.pd.noans{background:#ff9500}.pd.placed{background:#c7c7cc}.pd.back{background:#af52de}
+.leaflet-control-attribution{font-size:9px}.leaflet-tile-pane{filter:saturate(.35) brightness(1.06)}
+</style></head><body><div class="wrap">
+<div class="eyebrow">שלום תומר · 3 טלפנים מחוברים</div>
+<h1>גיוס לדוכנים</h1>
+<div class="seg"><button data-v="map">מפה</button><button data-v="list">לפי מרחק</button></div>
+<div class="card maponly"><div class="mapw"><div id="map"></div></div>
+  <div class="cap"><div><b id="stn"></b><br><span id="sts"></span></div><div class="need" id="need"></div></div></div>
+<div class="live"><i></i>שי מדבר עכשיו עם רונית כהן</div>
+<div class="card"><div class="focus" id="focus"></div></div>
+<div class="listonly"><div class="sec">הכי קרובים לדוכן</div><div class="grp" id="grp"></div></div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script>
+const S = MOCK.stands[0], near = MOCK.near(S), sel = near[0], ini = n => n.split(' ').map(w => w[0]).join('');
+document.getElementById('stn').textContent = 'דוכן ' + S.name.split(',')[0];
+document.getElementById('sts').textContent = `נתניה · חשיבות ${S.imp} · ${near.filter(p => p.m <= 500).length} אנשים עד 500 מ׳`;
+document.getElementById('need').textContent = `חסרים ${S.need - S.have}`;
+const setV = v => { document.body.classList.toggle('view-list', v === 'list'); document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); };
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => setV(b.dataset.v)); setV(MOCK.view);
+const map = L.map('map', { zoomControl: false }).setView([S.lat, S.lng], 16);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+MOCK.stands.forEach(s => L.marker([s.lat, s.lng], { icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="stb ${s.have >= s.need ? 'full' : ''}">${s.need - s.have || '✓'}</div>` }) }).addTo(map));
+near.forEach(p => L.marker([p.lat, p.lng], { icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="pd ${p.st} ${p.id === sel.id ? 'sel' : ''}"></div>` }) }).addTo(map));
+const sub = p => `${MOCK.stLabel[p.st]}${p.by ? ' · ' + p.by : ''}${p.tries ? ' · ' + p.tries + ' מתוך 3' : ''}${p.when ? ' · ' + p.when : ''} · ${p.tag}`;
+const ic = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+document.getElementById('focus').innerHTML = `<div class="fr"><div class="av">${ini(sel.name)}</div><div><div class="nm">${sel.name}</div><div class="meta">${sub(sel)}${sel.reg ? ' · רשום ל' + sel.reg : ''}</div></div><div class="m">${sel.m}<small>מטר</small></div></div>
+  <button class="call">התקשר</button>
+  <div class="icons"><button>${ic('<path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20l1.3-5A8.4 8.4 0 1 1 21 11.5Z"/>')}וואטסאפ</button><button>${ic('<path d="M20 6 9 17l-5-5"/>')}שיבוץ</button><button>${ic('<path d="M18 6 6 18M6 6l12 12"/>')}לא ענה</button><button>${ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}לחזור</button></div>`;
+document.getElementById('grp').innerHTML = near.map(p => `<div class="li st-${p.st}"><div class="av">${ini(p.name)}</div><div><div class="nm" style="font-weight:500">${p.name}</div><div class="meta">${sub(p)}</div></div><div class="m">${p.m}<small>מטר</small></div><div class="chev">‹</div></div>`).join('');
+</script></body></html>

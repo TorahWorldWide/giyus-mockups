@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>גיוס לדוכנים · אובר</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* OpenDesign: uber — pure black/white, pill everything, whisper shadows, no gradients */
+:root{--black:#000;--white:#fff;--hover:#e2e2e2;--chip:#efefef;--body:#4b4b4b;--muted:#afafaf;--sh:rgba(0,0,0,.12);--sh2:rgba(0,0,0,.16)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;font-family:Heebo,system-ui,sans-serif;color:var(--black);background:var(--white)}
+#map{position:fixed;inset:0;direction:ltr}
+.top{position:fixed;top:12px;inset-inline:12px;z-index:700;display:flex;gap:8px;align-items:center}
+.seg{display:flex;background:var(--white);border-radius:999px;box-shadow:0 2px 8px var(--sh2);padding:4px}
+.seg button{border:0;background:none;font:500 15px Heebo;padding:8px 16px;border-radius:999px;color:var(--black)}
+.seg button.on{background:var(--black);color:var(--white)}
+.who{margin-inline-start:auto;background:var(--white);border-radius:999px;box-shadow:0 2px 8px var(--sh2);padding:10px 14px;font:500 14px Heebo}
+.live{position:fixed;top:68px;inset-inline-start:12px;z-index:500;background:var(--black);color:var(--white);border-radius:999px;padding:8px 14px;font:500 13px Heebo;display:flex;gap:8px;align-items:center}
+.live i{width:8px;height:8px;border-radius:50%;background:#fff;animation:p 1.2s infinite}
+@keyframes p{50%{opacity:.25}}
+.sheet{position:fixed;bottom:0;inset-inline:0;z-index:600;background:var(--white);border-radius:16px 16px 0 0;box-shadow:0 -4px 16px var(--sh);padding:8px 16px 20px;max-height:58vh;overflow:auto}
+.grab{width:40px;height:5px;border-radius:999px;background:var(--chip);margin:4px auto 12px}
+h1{font:700 24px/1.33 Heebo}
+.sub{font:400 14px Heebo;color:var(--body);margin:2px 0 12px}
+.chips{display:flex;gap:8px;overflow:auto;margin-bottom:12px}
+.chip{background:var(--chip);border-radius:999px;padding:8px 14px;font:500 14px Heebo;white-space:nowrap;border:0}
+.chip.on{background:var(--black);color:var(--white)}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--chip)}
+.av{width:44px;height:44px;border-radius:50%;background:var(--black);color:var(--white);display:grid;place-items:center;font:700 13px Heebo;flex:none}
+.av.g{background:var(--chip);color:var(--black)}
+.nm{font:500 16px Heebo}
+.meta{font:400 13px Heebo;color:var(--body)}
+.m{margin-inline-start:auto;font:700 18px Heebo;text-align:end}
+.m small{display:block;font:400 12px Heebo;color:var(--body)}
+.card{border-radius:12px;box-shadow:0 4px 16px var(--sh);padding:14px;margin:4px 0 12px}
+.card .row{border:0;padding:0 0 12px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:0;border-radius:999px;padding:12px;font:500 15px Heebo;background:var(--chip);color:var(--black)}
+.btn.pri{background:var(--black);color:var(--white);grid-column:1/-1;font-weight:700;font-size:17px;padding:14px}
+.tag{display:inline-block;border:1px solid var(--black);border-radius:999px;padding:0 8px;font:500 12px Heebo;margin-inline-start:6px}
+.list{position:fixed;inset:0;z-index:550;background:var(--white);padding:76px 16px 20px;overflow:auto;display:none}
+.list h2{font:700 20px Heebo;margin:8px 0}
+.view-list .list{display:block}.view-list .sheet,.view-list .live{display:none}
+/* map markers */
+.st{width:38px;height:38px;border-radius:8px;background:var(--black);color:var(--white);display:grid;place-items:center;font:800 15px Heebo;box-shadow:0 2px 8px var(--sh2)}
+.st.full{background:var(--white);color:var(--black);border:2px solid var(--black)}
+.pp{width:30px;height:30px;border-radius:50%;background:var(--white);border:3px solid var(--black);display:grid;place-items:center;font:700 10px Heebo;box-shadow:0 2px 8px var(--sh2)}
+.pp.sel{background:var(--black);color:var(--white);transform:scale(1.25)}
+.pp.calling{border-style:dashed}
+.pp.placed{opacity:.35}
+.pp.noans{border-color:var(--muted)}
+.leaflet-control-attribution{font-size:9px}
+.leaflet-tile-pane{filter:grayscale(1) contrast(.9) brightness(1.05)}
+</style></head><body>
+<div id="map"></div>
+<div class="top">
+  <div class="seg"><button data-v="map">מפה</button><button data-v="list">רשימה</button></div>
+  <div class="who">תומר · טלפן</div>
+</div>
+<div class="live"><i></i> שי מתקשר עכשיו לרונית כהן</div>
+<div class="sheet" id="sheet"></div>
+<div class="list" id="list"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script>
+const S = MOCK.stands[0], near = MOCK.near(S), sel = near[0];
+document.body.classList.toggle('view-list', MOCK.view === 'list');
+document.querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', b.dataset.v === MOCK.view);
+  b.onclick = () => { MOCK.view = b.dataset.v; document.body.classList.toggle('view-list', MOCK.view === 'list');
+    document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b)); } });
+const ini = n => n.split(' ').map(w => w[0]).join('');
+const map = L.map('map', { zoomControl: false }).setView([S.lat - .0022, S.lng], 16);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+MOCK.stands.forEach(s => L.marker([s.lat, s.lng], { icon: L.divIcon({ className: '', iconSize: [38, 38],
+  html: `<div class="st ${s.have >= s.need ? 'full' : ''}">${s.need - s.have > 0 ? '−' + (s.need - s.have) : '✓'}</div>` }) }).addTo(map));
+L.circle([S.lat, S.lng], { radius: 500, color: '#000', weight: 1, dashArray: '4 6', fillOpacity: .03 }).addTo(map);
+MOCK.people.forEach(p => L.marker([p.lat, p.lng], { icon: L.divIcon({ className: '', iconSize: [30, 30],
+  html: `<div class="pp ${p.st} ${p.id === sel.id ? 'sel' : ''}">${ini(p.name)}</div>` }) }).addTo(map));
+const row = p => `<div class="row"><div class="av ${p.st === 'new' ? '' : 'g'}">${ini(p.name)}</div>
+  <div><div class="nm">${p.name}${p.reg ? `<span class="tag">רשום ל${p.reg}</span>` : ''}</div>
+  <div class="meta">${MOCK.stLabel[p.st]}${p.by ? ' · ' + p.by : ''}${p.tries ? ' · ' + p.tries + '/3' : ''}${p.when ? ' · ' + p.when : ''} · ${p.tag}</div></div>
+  <div class="m">${p.m}<small>מטר</small></div></div>`;
+document.getElementById('sheet').innerHTML = `<div class="grab"></div>
+  <h1>${S.name}</h1><div class="sub">חשיבות ${S.imp} · חסרים ${S.need - S.have} מתוך ${S.need} · ${near.filter(p => p.m <= 500).length} אנשים עד 500 מ׳</div>
+  <div class="card">${row(sel)}<div class="btns"><button class="btn pri">התקשר לדני</button>
+  <button class="btn">וואטסאפ + קבוצה</button><button class="btn">שבץ לדוכן</button>
+  <button class="btn">לא ענה</button><button class="btn">לחזור אליו</button></div></div>
+  ${near.slice(1, 5).map(row).join('')}`;
+document.getElementById('list').innerHTML = `<div class="chips">${MOCK.stands.map((s, i) => `<button class="chip ${i ? '' : 'on'}">${s.name.split(',')[0]} · ${s.need - s.have ? 'חסרים ' + (s.need - s.have) : 'מלא'}</button>`).join('')}</div>
+  <h2>הכי קרובים ל${S.name.split(',')[0]}</h2>${near.map(row).join('')}`;
+</script></body></html>
